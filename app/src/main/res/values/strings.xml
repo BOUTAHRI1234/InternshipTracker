@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">Internship Tracker</string>
+    <string name="cr_er_un_compte">Créer un compte</string>
+    <string name="aucune_candidature_trouv_e_nappuyez_sur_sync_pour_analyser_vos_emails">Aucune candidature trouvée.\nAppuyez sur Sync pour analyser vos emails.</string>
+    <string name="synchroniser">Synchroniser</string>
+    <string name="email">Email</string>
+    <string name="mot_de_passe">Mot de passe</string>
+    <string name="configuration_tracker">Configuration Tracker</string>
+    <string name="gmail_app_password_imap">Gmail App Password (IMAP)</string>
+    <string name="cl_api_mistral">Clé API Mistral</string>
+    <string name="s_inscrire">S\'inscrire</string>
 </resources>
