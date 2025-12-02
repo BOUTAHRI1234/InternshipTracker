@@ -48,7 +48,7 @@
             android:layout_marginTop="8dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
-            <com.google.android.material.textfield.TextInputEditText
+            <com.google.android.material.textfield.TextInputEditText  <!--todo icon for displaying method to generate IMAP Password from README -->
                 android:id="@+id/etImapPass"
                 android:inputType="textPassword" android:layout_height="wrap_content" android:layout_width="match_parent"/>
         </com.google.android.material.textfield.TextInputLayout>

@@ -24,4 +24,16 @@ public class SessionManager {
         return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).getInt("ID", -1);
     }
     // ... autres getters (getEmail, getImapPassword, etc.)
+
+    public static String getEmail(Context context) {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).getString("EMAIL", null);
+    }
+
+    public static String getImapPassword(Context context) {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).getString("IMAP_PASS", null);
+    }
+
+    public static String getMistralKey(Context context) {
+        return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).getString("MISTRAL_KEY", null);
+    }
 }

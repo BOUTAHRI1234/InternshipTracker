@@ -5,15 +5,19 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+
 import java.util.ArrayList;
 import java.util.List;
-import eirb.mobile.internshiptracker.model.InternshipApplication;
+
+import eirb.mobile.internshiptracker.model.Company;
+import eirb.mobile.internshiptracker.model.InternshipInteraction;
+import eirb.mobile.internshiptracker.model.Timeline;
 import eirb.mobile.internshiptracker.model.User;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "internship_tracker.db";
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2; // Incremented version
 
     // Table Users
     private static final String TABLE_USERS = "users";
@@ -23,16 +27,20 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String COL_USER_IMAP_PASS = "imapPassword";
     private static final String COL_USER_API_KEY = "mistralApiKey";
 
-    // Table Applications
-    private static final String TABLE_APPS = "applications";
-    private static final String COL_APP_ID = "id";
-    private static final String COL_APP_USER_ID = "userId";
-    private static final String COL_APP_COMPANY = "companyName";
-    private static final String COL_APP_POSITION = "position";
-    private static final String COL_APP_STATUS = "status";
-    private static final String COL_APP_EMAIL_ID = "emailId";
-    private static final String COL_APP_SUMMARY = "summary";
-    private static final String COL_APP_DATE = "sentDate";
+    // Table Company
+    private static final String TABLE_COMPANY = "company";
+    private static final String COL_COMPANY_ID = "id";
+    private static final String COL_COMPANY_NAME = "name";
+
+    // Table InternshipInteraction
+    private static final String TABLE_INTERNSHIP_INTERACTION = "internship_interaction";
+    private static final String COL_INTERACTION_ID = "id";
+    private static final String COL_INTERACTION_COMPANY_ID = "company_id";
+    private static final String COL_INTERACTION_OFFER_NAME = "offer_name";
+    private static final String COL_INTERACTION_DESCRIPTION = "description";
+    private static final String COL_INTERACTION_DATE = "interaction_date";
+    private static final String COL_INTERACTION_USER_EMAIL = "user_email";
+
 
     public DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -47,24 +55,28 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 COL_USER_IMAP_PASS + " TEXT, " +
                 COL_USER_API_KEY + " TEXT)";
 
-        String createApp = "CREATE TABLE " + TABLE_APPS + " (" +
-                COL_APP_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                COL_APP_USER_ID + " INTEGER, " +
-                COL_APP_COMPANY + " TEXT, " +
-                COL_APP_POSITION + " TEXT, " +
-                COL_APP_STATUS + " TEXT, " +
-                COL_APP_EMAIL_ID + " TEXT, " +
-                COL_APP_SUMMARY + " TEXT, " +
-                COL_APP_DATE + " INTEGER, " +
-                "FOREIGN KEY(" + COL_APP_USER_ID + ") REFERENCES " + TABLE_USERS + "(" + COL_USER_ID + ") ON DELETE CASCADE)";
+        String createCompany = "CREATE TABLE " + TABLE_COMPANY + " (" +
+                COL_COMPANY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                COL_COMPANY_NAME + " TEXT UNIQUE)";
+
+        String createInternshipInteraction = "CREATE TABLE " + TABLE_INTERNSHIP_INTERACTION + " (" +
+                COL_INTERACTION_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                COL_INTERACTION_COMPANY_ID + " INTEGER, " +
+                COL_INTERACTION_OFFER_NAME + " TEXT, " +
+                COL_INTERACTION_DESCRIPTION + " TEXT, " +
+                COL_INTERACTION_DATE + " INTEGER, " +
+                COL_INTERACTION_USER_EMAIL + " TEXT, " +
+                "FOREIGN KEY(" + COL_INTERACTION_COMPANY_ID + ") REFERENCES " + TABLE_COMPANY + "(" + COL_COMPANY_ID + ") ON DELETE CASCADE)";
 
         db.execSQL(createUsers);
-        db.execSQL(createApp);
+        db.execSQL(createCompany);
+        db.execSQL(createInternshipInteraction);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_APPS);
+        db.execSQL("DROP TABLE IF EXISTS " + TABLE_INTERNSHIP_INTERACTION);
+        db.execSQL("DROP TABLE IF EXISTS " + TABLE_COMPANY);
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_USERS);
         onCreate(db);
     }
@@ -100,81 +112,99 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return user;
     }
 
-    // --- Application Operations ---
-
-    public void insertApplication(InternshipApplication app) {
+    // --- Company Operations ---
+    public long insertCompany(Company company) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
-        values.put(COL_APP_USER_ID, app.userId);
-        values.put(COL_APP_COMPANY, app.companyName);
-        values.put(COL_APP_POSITION, app.position);
-        values.put(COL_APP_STATUS, app.status);
-        values.put(COL_APP_EMAIL_ID, app.emailId);
-        values.put(COL_APP_SUMMARY, app.summary);
-        values.put(COL_APP_DATE, app.sentDate);
-        db.insert(TABLE_APPS, null, values);
+        values.put(COL_COMPANY_NAME, company.name);
+        long id = db.insertWithOnConflict(TABLE_COMPANY, null, values, SQLiteDatabase.CONFLICT_IGNORE);
         db.close();
+        if (id == -1) {
+            return getCompanyByName(company.name).id;
+        }
+        return id;
     }
 
-    public List<InternshipApplication> getApplicationsForUser(int userId) {
-        List<InternshipApplication> list = new ArrayList<>();
+    public Company getCompanyByName(String name) {
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.query(TABLE_APPS, null, COL_APP_USER_ID + "=?",
-                new String[]{String.valueOf(userId)}, null, null, COL_APP_DATE + " DESC");
+        Cursor cursor = db.query(TABLE_COMPANY, null, COL_COMPANY_NAME + "=?", new String[]{name}, null, null, null);
+        Company company = null;
+        if (cursor != null && cursor.moveToFirst()) {
+            company = new Company();
+            company.id = cursor.getInt(cursor.getColumnIndexOrThrow(COL_COMPANY_ID));
+            company.name = cursor.getString(cursor.getColumnIndexOrThrow(COL_COMPANY_NAME));
+            cursor.close();
+        }
+        db.close();
+        return company;
+    }
 
-        if (cursor.moveToFirst()) {
+    // --- InternshipInteraction Operations ---
+    public long insertInternshipInteraction(InternshipInteraction interaction) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COL_INTERACTION_COMPANY_ID, interaction.companyId);
+        values.put(COL_INTERACTION_OFFER_NAME, interaction.offerName);
+        values.put(COL_INTERACTION_DESCRIPTION, interaction.description);
+        values.put(COL_INTERACTION_DATE, interaction.interactionDate);
+        values.put(COL_INTERACTION_USER_EMAIL, interaction.userEmail);
+        long id = db.insert(TABLE_INTERNSHIP_INTERACTION, null, values);
+        db.close();
+        return id;
+    }
+    
+    public List<Timeline> getTimelinesForUser(String userEmail) {
+        List<Timeline> timelines = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        String query = "SELECT DISTINCT " + COL_INTERACTION_COMPANY_ID + " FROM " + TABLE_INTERNSHIP_INTERACTION + " WHERE " + COL_INTERACTION_USER_EMAIL + "=?";
+        Cursor companyCursor = db.rawQuery(query, new String[]{userEmail});
+
+        if (companyCursor.moveToFirst()) {
             do {
-                InternshipApplication app = new InternshipApplication();
-                app.id = cursor.getInt(cursor.getColumnIndexOrThrow(COL_APP_ID));
-                app.userId = cursor.getInt(cursor.getColumnIndexOrThrow(COL_APP_USER_ID));
-                app.companyName = cursor.getString(cursor.getColumnIndexOrThrow(COL_APP_COMPANY));
-                app.position = cursor.getString(cursor.getColumnIndexOrThrow(COL_APP_POSITION));
-                app.status = cursor.getString(cursor.getColumnIndexOrThrow(COL_APP_STATUS));
-                app.emailId = cursor.getString(cursor.getColumnIndexOrThrow(COL_APP_EMAIL_ID));
-                app.summary = cursor.getString(cursor.getColumnIndexOrThrow(COL_APP_SUMMARY));
-                app.sentDate = cursor.getLong(cursor.getColumnIndexOrThrow(COL_APP_DATE));
-                list.add(app);
-            } while (cursor.moveToNext());
+                int companyId = companyCursor.getInt(companyCursor.getColumnIndexOrThrow(COL_INTERACTION_COMPANY_ID));
+                timelines.add(getTimelineForCompany(userEmail, companyId));
+            } while (companyCursor.moveToNext());
         }
-        cursor.close();
+        companyCursor.close();
         db.close();
-        return list;
+
+        return timelines;
     }
-
-    public List<InternshipApplication> getCompanyTimeline(int userId, String companyName) {
-        List<InternshipApplication> list = new ArrayList<>();
+    
+    public Timeline getTimelineForCompany(String userEmail, int companyId) {
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.query(TABLE_APPS, null, COL_APP_USER_ID + "=? AND " + COL_APP_COMPANY + "=?",
-                new String[]{String.valueOf(userId), companyName}, null, null, COL_APP_DATE + " DESC");
+        Company company = null;
+        List<InternshipInteraction> interactions = new ArrayList<>();
 
-        if (cursor.moveToFirst()) {
+        Cursor companyDetailsCursor = db.query(TABLE_COMPANY, null, COL_COMPANY_ID + "=?", new String[]{String.valueOf(companyId)}, null, null, null);
+        if(companyDetailsCursor.moveToFirst()){
+            company = new Company();
+            company.id = companyDetailsCursor.getInt(companyDetailsCursor.getColumnIndexOrThrow(COL_COMPANY_ID));
+            company.name = companyDetailsCursor.getString(companyDetailsCursor.getColumnIndexOrThrow(COL_COMPANY_NAME));
+        }
+        companyDetailsCursor.close();
+
+        Cursor interactionCursor = db.query(TABLE_INTERNSHIP_INTERACTION, null, COL_INTERACTION_COMPANY_ID + "=? AND " + COL_INTERACTION_USER_EMAIL + "=?",
+                new String[]{String.valueOf(companyId), userEmail}, null, null, COL_INTERACTION_DATE + " DESC");
+
+        if (interactionCursor.moveToFirst()) {
             do {
-                InternshipApplication app = new InternshipApplication();
-                app.id = cursor.getInt(cursor.getColumnIndexOrThrow(COL_APP_ID));
-                app.userId = cursor.getInt(cursor.getColumnIndexOrThrow(COL_APP_USER_ID));
-                app.companyName = cursor.getString(cursor.getColumnIndexOrThrow(COL_APP_COMPANY));
-                app.position = cursor.getString(cursor.getColumnIndexOrThrow(COL_APP_POSITION));
-                app.status = cursor.getString(cursor.getColumnIndexOrThrow(COL_APP_STATUS));
-                app.emailId = cursor.getString(cursor.getColumnIndexOrThrow(COL_APP_EMAIL_ID));
-                app.summary = cursor.getString(cursor.getColumnIndexOrThrow(COL_APP_SUMMARY));
-                app.sentDate = cursor.getLong(cursor.getColumnIndexOrThrow(COL_APP_DATE));
-                list.add(app);
-            } while (cursor.moveToNext());
+                InternshipInteraction interaction = new InternshipInteraction();
+                interaction.id = interactionCursor.getInt(interactionCursor.getColumnIndexOrThrow(COL_INTERACTION_ID));
+                interaction.companyId = interactionCursor.getInt(interactionCursor.getColumnIndexOrThrow(COL_INTERACTION_COMPANY_ID));
+                interaction.offerName = interactionCursor.getString(interactionCursor.getColumnIndexOrThrow(COL_INTERACTION_OFFER_NAME));
+                interaction.description = interactionCursor.getString(interactionCursor.getColumnIndexOrThrow(COL_INTERACTION_DESCRIPTION));
+                interaction.interactionDate = interactionCursor.getLong(interactionCursor.getColumnIndexOrThrow(COL_INTERACTION_DATE));
+                interaction.userEmail = interactionCursor.getString(interactionCursor.getColumnIndexOrThrow(COL_INTERACTION_USER_EMAIL));
+                interactions.add(interaction);
+            } while (interactionCursor.moveToNext());
         }
-        cursor.close();
-        db.close();
-        return list;
-    }
+        interactionCursor.close();
 
-    public int countEmailId(String emailId) {
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_APPS + " WHERE " + COL_APP_EMAIL_ID + "=?", new String[]{emailId});
-        int count = 0;
-        if (cursor.moveToFirst()) {
-            count = cursor.getInt(0);
+        if(company != null){
+            return new Timeline(company, interactions);
         }
-        cursor.close();
-        db.close();
-        return count;
+        return null;
     }
 }

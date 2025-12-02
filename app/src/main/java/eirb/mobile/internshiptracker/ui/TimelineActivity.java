@@ -5,37 +5,51 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import java.util.ArrayList;
+
 import eirb.mobile.internshiptracker.R;
 import eirb.mobile.internshiptracker.data.DatabaseHelper;
-import eirb.mobile.internshiptracker.model.InternshipApplication;
+import eirb.mobile.internshiptracker.model.Timeline;
 import eirb.mobile.internshiptracker.util.SessionManager;
-import java.util.List;
 
 public class TimelineActivity extends AppCompatActivity {
+
+    private RecyclerView recyclerView;
+    private InternshipInteractionAdapter adapter;
+    private DatabaseHelper dbHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_timeline);
 
+        dbHelper = new DatabaseHelper(this);
+
         String companyName = getIntent().getStringExtra("COMPANY_NAME");
-        TextView tvTitle = findViewById(R.id.tvCompanyTitle);
-        tvTitle.setText(companyName + " Timeline");
+        int companyId = getIntent().getIntExtra("COMPANY_ID", -1);
 
-        RecyclerView rvTimeline = findViewById(R.id.rvTimeline);
-        rvTimeline.setLayoutManager(new LinearLayoutManager(this));
+        TextView tvCompanyName = findViewById(R.id.tvCompanyName);
+        tvCompanyName.setText(companyName);
 
-        int userId = SessionManager.getUserId(this);
-        DatabaseHelper dbHelper = new DatabaseHelper(this); // Instanciation
+        recyclerView = findViewById(R.id.recyclerViewInteractions);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
+        adapter = new InternshipInteractionAdapter(new ArrayList<>());
+        recyclerView.setAdapter(adapter);
+
+        if (companyId != -1) {
+            loadInteractions(companyId);
+        }
+    }
+
+    private void loadInteractions(int companyId) {
+        String userEmail = SessionManager.getEmail(this);
         new Thread(() -> {
-            List<InternshipApplication> timeline = dbHelper.getCompanyTimeline(userId, companyName);
-
-            // Adapter non fourni dans le prompt initial, mais la logique d'appel est ici
-            runOnUiThread(() -> {
-                // TimelineAdapter adapter = new TimelineAdapter(timeline);
-                // rvTimeline.setAdapter(adapter);
-            });
+            Timeline timeline = dbHelper.getTimelineForCompany(userEmail, companyId);
+            if (timeline != null) {
+                runOnUiThread(() -> adapter.setData(timeline.interactions));
+            }
         }).start();
     }
 }

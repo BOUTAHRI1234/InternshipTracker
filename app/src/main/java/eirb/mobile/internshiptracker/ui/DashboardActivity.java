@@ -3,41 +3,51 @@ package eirb.mobile.internshiptracker.ui;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.gson.JsonObject;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import eirb.mobile.internshiptracker.R;
 import eirb.mobile.internshiptracker.data.DatabaseHelper;
-import eirb.mobile.internshiptracker.model.InternshipApplication;
+import eirb.mobile.internshiptracker.model.Company;
+import eirb.mobile.internshiptracker.model.InternshipInteraction;
+import eirb.mobile.internshiptracker.model.Timeline;
 import eirb.mobile.internshiptracker.service.AiAnalyzer;
 import eirb.mobile.internshiptracker.service.ImapService;
 import eirb.mobile.internshiptracker.util.SessionManager;
-import com.google.gson.JsonObject;
-import java.util.ArrayList;
-import java.util.List;
 
 public class DashboardActivity extends AppCompatActivity {
 
     private RecyclerView recyclerView;
-    private ApplicationAdapter adapter;
+    private TimelineAdapter adapter;
     private DatabaseHelper dbHelper;
-    private ProgressBar progressBar;
+    private TextView tvEmptyState;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dashboard);
 
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
         dbHelper = new DatabaseHelper(this);
-        progressBar = findViewById(R.id.progressBar);
-        recyclerView = findViewById(R.id.recyclerView);
+        tvEmptyState = findViewById(R.id.tvEmptyState);
+        recyclerView = findViewById(R.id.recyclerViewTimelines);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
-        adapter = new ApplicationAdapter(new ArrayList<>(), app -> {
+        adapter = new TimelineAdapter(new ArrayList<>(), timeline -> {
             Intent intent = new Intent(this, TimelineActivity.class);
-            intent.putExtra("COMPANY_NAME", app.companyName);
+            intent.putExtra("COMPANY_ID", timeline.company.id);
+            intent.putExtra("COMPANY_NAME", timeline.company.name);
             startActivity(intent);
         });
         recyclerView.setAdapter(adapter);
@@ -48,19 +58,27 @@ public class DashboardActivity extends AppCompatActivity {
     }
 
     private void loadData() {
-        int userId = SessionManager.getUserId(this);
+        String userEmail = SessionManager.getEmail(this);
         new Thread(() -> {
-            List<InternshipApplication> list = dbHelper.getApplicationsForUser(userId);
-            runOnUiThread(() -> adapter.setData(list));
+            List<Timeline> timelines = dbHelper.getTimelinesForUser(userEmail);
+            runOnUiThread(() -> {
+                if (timelines.isEmpty()) {
+                    tvEmptyState.setVisibility(View.VISIBLE);
+                    recyclerView.setVisibility(View.GONE);
+                } else {
+                    tvEmptyState.setVisibility(View.GONE);
+                    recyclerView.setVisibility(View.VISIBLE);
+                    adapter.setData(timelines);
+                }
+            });
         }).start();
     }
 
     private void syncEmails() {
-        progressBar.setVisibility(View.VISIBLE);
+        Toast.makeText(this, "Sync starting...", Toast.LENGTH_SHORT).show();
         String email = SessionManager.getEmail(this);
         String imapPass = SessionManager.getImapPassword(this);
         String mistralKey = SessionManager.getMistralKey(this);
-        int userId = SessionManager.getUserId(this);
 
         new Thread(() -> {
             ImapService imapService = new ImapService();
@@ -68,9 +86,6 @@ public class DashboardActivity extends AppCompatActivity {
 
             imapService.fetchEmails(email, imapPass, (msg, folder) -> {
                 try {
-                    String msgId = msg.getHeader("Message-ID")[0];
-                    if (dbHelper.countEmailId(msgId) > 0) return; // Check SQLite
-
                     String subject = msg.getSubject();
                     String sender = msg.getFrom()[0].toString();
                     String body = imapService.getTextFromMessage(msg);
@@ -78,17 +93,19 @@ public class DashboardActivity extends AppCompatActivity {
 
                     JsonObject analysis = aiAnalyzer.analyzeEmail(subject, body, sender, date);
 
-                    if (analysis != null) {
-                        InternshipApplication app = new InternshipApplication();
-                        app.userId = userId;
-                        app.emailId = msgId;
-                        app.companyName = analysis.has("company") ? analysis.get("company").getAsString() : "Unknown";
-                        app.position = analysis.has("position") ? analysis.get("position").getAsString() : "Unknown";
-                        app.status = analysis.has("status") ? analysis.get("status").getAsString() : "Awaiting Reply";
-                        app.summary = analysis.has("summary") ? analysis.get("summary").getAsString() : "";
-                        app.sentDate = msg.getSentDate().getTime();
+                    if (analysis != null && analysis.has("company")) {
+                        String companyName = analysis.get("company").getAsString();
+                        Company company = new Company(0, companyName);
+                        long companyId = dbHelper.insertCompany(company);
 
-                        dbHelper.insertApplication(app); // Insert via SQLite
+                        InternshipInteraction interaction = new InternshipInteraction();
+                        interaction.companyId = (int) companyId;
+                        interaction.offerName = analysis.has("position") ? analysis.get("position").getAsString() : "Unknown";
+                        interaction.description = analysis.has("summary") ? analysis.get("summary").getAsString() : "";
+                        interaction.interactionDate = msg.getSentDate().getTime();
+                        interaction.userEmail = email;
+
+                        dbHelper.insertInternshipInteraction(interaction);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -96,7 +113,6 @@ public class DashboardActivity extends AppCompatActivity {
             });
 
             runOnUiThread(() -> {
-                progressBar.setVisibility(View.GONE);
                 Toast.makeText(this, "Sync Complete", Toast.LENGTH_SHORT).show();
                 loadData();
             });
