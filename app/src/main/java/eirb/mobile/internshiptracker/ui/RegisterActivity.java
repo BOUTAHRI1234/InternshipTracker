@@ -1,10 +1,15 @@
 package eirb.mobile.internshiptracker.ui;
 
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.google.android.material.textfield.TextInputLayout;
+
 import eirb.mobile.internshiptracker.R;
 import eirb.mobile.internshiptracker.data.DatabaseHelper;
 import eirb.mobile.internshiptracker.model.User;
@@ -21,11 +26,40 @@ public class RegisterActivity extends AppCompatActivity {
 
         dbHelper = new DatabaseHelper(this);
 
-        etEmail = findViewById(R.id.etRegEmail);
-        etPassword = findViewById(R.id.etRegPassword);
-        etImapPass = findViewById(R.id.etRegImapPass);
-        etMistralKey = findViewById(R.id.etRegMistralKey);
+        etEmail = findViewById(R.id.etEmail);
+        etPassword = findViewById(R.id.etPassword);
+        etImapPass = findViewById(R.id.etImapPass);
+        etMistralKey = findViewById(R.id.etMistralKey);
         Button btnRegister = findViewById(R.id.btnRegister);
+
+        TextView tvLoginLink = findViewById(R.id.tvLoginLink);
+        tvLoginLink.setOnClickListener(v -> finish());
+
+
+        TextView tvImapHelp = findViewById(R.id.tvImapHelp);
+        tvImapHelp.setOnClickListener(v -> {
+            String helpMessage = "Here’s how to do to redeem IMAP Password code:\n\n" +
+                    "1. Open your Google Account Security Settings: Visit https://account.google.com/security\n\n" +
+                    "2. Enable 2-Step Verification (if it’s not already enabled): Scroll down to Signing in to Google → click 2-Step Verification → follow the setup steps. You’ll need this active before you can create app passwords.\n\n" +
+                    "3. Generate an App Password:\n" +
+                    "- Once 2-Step Verification is on, go back to the Security page.\n" +
+                    "- Click App Passwords (it appears below 2-Step Verification).\n" +
+                    "- Log in again if prompted.\n" +
+                    "- Under Select App, choose Mail.\n" +
+                    "- Under Select Device, choose Other (Custom name) → type for example InternshipTracker.\n" +
+                    "- Click Generate.\n" +
+                    "- Google will display a 16-character password — copy it.\n\n" +
+                    "4. Use this password in your .env file\n\n" +
+                    "5. Enable IMAP in Gmail (if not already):\n" +
+                    "- Go to Gmail → Settings → See all settings → Forwarding and POP/IMAP tab.\n" +
+                    "- Under “IMAP access,” choose Enable IMAP → click Save Changes.";
+
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("Gmail Configuration Help")
+                    .setMessage(helpMessage)
+                    .setPositiveButton("Got it", (dialog, which) -> dialog.dismiss())
+                    .show();
+        });
 
         btnRegister.setOnClickListener(v -> {
             String email = etEmail.getText().toString();

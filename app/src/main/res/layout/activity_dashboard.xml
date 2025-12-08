@@ -5,19 +5,22 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#E8F5E9" 
+    android:background="#F5F5F5"
     tools:context=".ui.DashboardActivity">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
+        android:theme="@style/ThemeOverlay.AppCompat.Light"
+        android:background="@android:color/transparent"
+        app:elevation="0dp">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="?attr/colorPrimary"
+            app:title="Dashboard"
+            app:titleTextColor="#1A237E"
             app:popupTheme="@style/ThemeOverlay.AppCompat.Light"/>
 
     </com.google.android.material.appbar.AppBarLayout>
@@ -37,16 +40,19 @@
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
         android:src="@android:drawable/ic_popup_sync"
-        app:backgroundTint="@color/material_dynamic_primary60"
-        android:contentDescription="@string/synchroniser" />
+        app:backgroundTint="#FF4081"
+        app:tint="#FFFFFF"
+        android:contentDescription="@string/sync" />
 
     <TextView
         android:id="@+id/tvEmptyState"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:text="@string/aucune_candidature_trouv_e_nappuyez_sur_sync_pour_analyser_vos_emails"
+        android:text="@string/no_applications_found_ntap_sync_to_analyze_your_emails"
+        android:textColor="#757575"
         android:gravity="center"
+        android:textSize="16sp"
         android:visibility="gone"/>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

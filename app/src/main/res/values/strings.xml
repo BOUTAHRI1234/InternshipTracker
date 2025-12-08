@@ -9,4 +9,11 @@
     <string name="gmail_app_password_imap">Gmail App Password (IMAP)</string>
     <string name="cl_api_mistral">Clé API Mistral</string>
     <string name="s_inscrire">S\'inscrire</string>
+    <string name="configuration_api">Configuration API</string>
+    <string name="internship_ntracker">Internship\nTracker</string>
+    <string name="imap_gmail_password">IMAP Gmail Password</string>
+    <string name="welcome_back">Welcome Back</string>
+    <string name="login_to_continue_tracking">Login to continue tracking</string>
+    <string name="sync">Sync</string>
+    <string name="no_applications_found_ntap_sync_to_analyze_your_emails">No applications found.\nTap Sync to analyze your emails.</string>
 </resources>

@@ -23,7 +23,6 @@ public class SessionManager {
     public static int getUserId(Context context) {
         return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).getInt("ID", -1);
     }
-    // ... autres getters (getEmail, getImapPassword, etc.)
 
     public static String getEmail(Context context) {
         return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE).getString("EMAIL", null);

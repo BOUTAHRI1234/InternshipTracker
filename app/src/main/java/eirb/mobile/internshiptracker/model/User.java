@@ -1,8 +1,5 @@
 package eirb.mobile.internshiptracker.model;
 
-import androidx.room.Entity;
-import androidx.room.PrimaryKey;
-
 public class User {
     public int id;
 

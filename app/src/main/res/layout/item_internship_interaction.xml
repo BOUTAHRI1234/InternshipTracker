@@ -5,9 +5,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android.layout_margin="8dp"
-    app:cardElevation="4dp"
-    app:cardCornerRadius="8dp"
+    android:layout_margin="8dp"
+    app:cardElevation="2dp"
+    app:cardCornerRadius="12dp"
     app:cardBackgroundColor="#FFFFFF">
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -22,15 +22,16 @@
             android:src="@android:drawable/ic_dialog_info"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:tint="@color/material_dynamic_primary60" />
+            app:tint="#3F51B5" />
 
         <TextView
             android:id="@+id/tvOfferName"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
-            android:textSize="18sp"
+            android:textSize="16sp"
             android:textStyle="bold"
+            android:textColor="#000000"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toEndOf="@id/ivIcon"
             app:layout_constraintEnd_toEndOf="parent"
@@ -40,8 +41,10 @@
             android:id="@+id/tvInteractionDate"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="4dp"
             android:layout_marginStart="16dp"
+            android:textSize="12sp"
+            android:textColor="#757575"
             app:layout_constraintTop_toBottomOf="@id/tvOfferName"
             app:layout_constraintStart_toEndOf="@id/ivIcon"
             tools:text="2024-05-20" />
@@ -50,13 +53,13 @@
             android:id="@+id/tvDescription"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:layout_marginStart="16dp"
+            android:layout_marginTop="12dp"
+            android:textSize="14sp"
+            android:textColor="#424242"
             app:layout_constraintTop_toBottomOf="@id/tvInteractionDate"
-            app:layout_constraintStart_toEndOf="@id/ivIcon"
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             tools:text="Applied via company website." />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
-
 </com.google.android.material.card.MaterialCardView>
