@@ -2,7 +2,9 @@ package eirb.mobile.internshiptracker.ui;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -44,6 +46,18 @@ public class DashboardActivity extends AppCompatActivity {
         recyclerView = findViewById(R.id.recyclerViewTimelines);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
+        ImageView btnLogout = findViewById(R.id.btnLogout);
+
+        btnLogout.setOnClickListener(v -> {
+            SessionManager.logout(DashboardActivity.this);
+
+            Intent intent = new Intent(DashboardActivity.this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+
+            startActivity(intent);
+            finish();
+        });
+
         adapter = new TimelineAdapter(new ArrayList<>(), timeline -> {
             Intent intent = new Intent(this, TimelineActivity.class);
             intent.putExtra("COMPANY_ID", timeline.company.id);
@@ -78,11 +92,14 @@ public class DashboardActivity extends AppCompatActivity {
         Toast.makeText(this, "Sync starting...", Toast.LENGTH_SHORT).show();
         String email = SessionManager.getEmail(this);
         String imapPass = SessionManager.getImapPassword(this);
-        String mistralKey = SessionManager.getMistralKey(this);
+        String groqKey = SessionManager.getGroqKey(this);
+        Log.d("DEBUG", "Email: " + email);
+        // Ne logguez pas le mot de passe en entier pour la sécurité, mais vérifiez sa longueur
+        Log.d("DEBUG", "Pass Length: " + (imapPass != null ? imapPass.length() : "null"));
 
         new Thread(() -> {
             ImapService imapService = new ImapService();
-            AiAnalyzer aiAnalyzer = new AiAnalyzer(mistralKey);
+            AiAnalyzer aiAnalyzer = new AiAnalyzer(groqKey);
 
             imapService.fetchEmails(email, imapPass, (msg, folder) -> {
                 try {

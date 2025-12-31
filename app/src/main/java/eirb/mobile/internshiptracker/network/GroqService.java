@@ -6,7 +6,7 @@ import retrofit2.http.Body;
 import retrofit2.http.Headers;
 import retrofit2.http.POST;
 
-public interface MistralService {
+public interface GroqService {
     @Headers("Content-Type: application/json")
     @POST("v1/chat/completions")
     Call<JsonObject> getChatCompletion(@Body JsonObject body);

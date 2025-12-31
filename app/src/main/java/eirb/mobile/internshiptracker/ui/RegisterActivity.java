@@ -29,7 +29,7 @@ public class RegisterActivity extends AppCompatActivity {
         etEmail = findViewById(R.id.etEmail);
         etPassword = findViewById(R.id.etPassword);
         etImapPass = findViewById(R.id.etImapPass);
-        etMistralKey = findViewById(R.id.etMistralKey);
+        etMistralKey = findViewById(R.id.etGroqKey);
         Button btnRegister = findViewById(R.id.btnRegister);
 
         TextView tvLoginLink = findViewById(R.id.tvLoginLink);

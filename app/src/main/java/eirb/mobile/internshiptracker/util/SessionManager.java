@@ -34,13 +34,13 @@ public class SessionManager {
         return sharedPreferences;
     }
 
-    public static void saveUser(Context context, int id, String email, String imapPass, String mistralKey) {
+    public static void saveUser(Context context, int id, String email, String imapPass, String groqKey) {
         SharedPreferences.Editor editor = getEncryptedSharedPreferences(context).edit();
         editor.putBoolean("IS_LOGGED_IN", true);
         editor.putInt("ID", id);
         editor.putString("EMAIL", email);
         editor.putString("IMAP_PASS", imapPass);
-        editor.putString("MISTRAL_KEY", mistralKey);
+        editor.putString("GROQ_KEY", groqKey);
         editor.apply();
     }
 
@@ -61,8 +61,8 @@ public class SessionManager {
         return getEncryptedSharedPreferences(context).getString("IMAP_PASS", null);
     }
 
-    public static String getMistralKey(Context context) {
-        return getEncryptedSharedPreferences(context).getString("MISTRAL_KEY", null);
+    public static String getGroqKey(Context context) {
+        return getEncryptedSharedPreferences(context).getString("GROQ_KEY", null);
     }
     public static void logout(Context context) {
         SharedPreferences.Editor editor = getEncryptedSharedPreferences(context).edit();

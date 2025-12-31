@@ -18,7 +18,11 @@ public class ImapService {
 
     public void fetchEmails(String email, String password, EmailCallback callback) {
         Properties props = new Properties();
-        props.put("mail.store.protocol", "imaps");
+        props.setProperty("mail.store.protocol", "imaps");
+        props.setProperty("mail.imaps.host", "imap.gmail.com");
+        props.setProperty("mail.imaps.port", "993");
+        props.setProperty("mail.imaps.ssl.enable", "true");
+        props.setProperty("mail.imaps.ssl.trust", "imap.gmail.com");
 
         try {
             Session session = Session.getDefaultInstance(props, null);

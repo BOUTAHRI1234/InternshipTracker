@@ -151,7 +151,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:hint="Mistral API Key"
+                    android:hint="Groq API Key"
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                     app:startIconDrawable="@android:drawable/ic_menu_info_details"
                     app:boxCornerRadiusTopStart="12dp"
@@ -160,7 +160,7 @@
                     app:boxCornerRadiusBottomEnd="12dp">
 
                     <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/etMistralKey"
+                        android:id="@+id/etGroqKey"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="textVisiblePassword"/>
