@@ -6,15 +6,15 @@ public class User {
     public String email;
     public String passwordHash;
     public String imapPassword;
-    public String mistralApiKey;
+    public String groqApiKey;
 
     public User() {}
 
-    public User(int id, String email, String passwordHash, String imapPassword, String mistralApiKey) {
+    public User(int id, String email, String passwordHash, String imapPassword, String groqApiKey) {
         this.id = id;
         this.email = email;
         this.passwordHash = passwordHash;
         this.imapPassword = imapPassword;
-        this.mistralApiKey = mistralApiKey;
+        this.groqApiKey = groqApiKey;
     }
 }

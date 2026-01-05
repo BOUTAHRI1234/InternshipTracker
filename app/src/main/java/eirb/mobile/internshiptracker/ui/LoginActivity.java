@@ -24,11 +24,6 @@ public class LoginActivity extends AppCompatActivity {
 
         dbHelper = new DatabaseHelper(this);
 
-        if (SessionManager.isLoggedIn(this)) {
-            startActivity(new Intent(this, DashboardActivity.class));
-            finish();
-        }
-
         etEmail = findViewById(R.id.etEmail);
         etPassword = findViewById(R.id.etPassword);
         Button btnLogin = findViewById(R.id.btnLogin);
@@ -48,7 +43,7 @@ public class LoginActivity extends AppCompatActivity {
             if (user != null) {
                 BCrypt.Result result = BCrypt.verifyer().verify(password.toCharArray(), user.passwordHash);
                 if (result.verified) {
-                    SessionManager.saveUser(this, user.id, user.email, user.imapPassword, user.mistralApiKey);
+                    SessionManager.saveUser(this, user.id, user.email, user.imapPassword, user.groqApiKey);
                     runOnUiThread(() -> {
                         startActivity(new Intent(this, DashboardActivity.class));
                         finish();

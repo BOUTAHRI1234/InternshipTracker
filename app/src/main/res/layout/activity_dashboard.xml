@@ -12,8 +12,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:theme="@style/ThemeOverlay.AppCompat.Light"
-        android:background="@android:color/transparent"
-        app:elevation="0dp">
+        android:background="@android:color/white"
+        android:stateListAnimator="@null"
+        app:elevation="1dp">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
@@ -21,7 +22,9 @@
             android:layout_height="?attr/actionBarSize"
             app:title="Dashboard"
             app:titleTextColor="#1A237E"
-            app:popupTheme="@style/ThemeOverlay.AppCompat.Light">
+            app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
+            app:titleTextAppearance="@style/TextAppearance.AppCompat.Medium"
+            android:elevation="0dp">
 
             <ImageView
                 android:id="@+id/btnLogout"
@@ -38,6 +41,39 @@
                 android:focusable="true"/>
 
         </androidx.appcompat.widget.Toolbar>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="12dp"
+            android:gravity="center_vertical">
+
+            <androidx.appcompat.widget.SearchView
+                android:id="@+id/searchView"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                app:queryHint="Search company..."
+                app:iconifiedByDefault="false"
+                android:background="@drawable/rounded_search_bg"
+                app:queryBackground="@android:color/transparent"
+                app:submitBackground="@android:color/transparent"
+                />
+
+            <Spinner
+                android:id="@+id/spinnerStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:minHeight="40dp"
+                android:background="@drawable/rounded_search_bg"
+                android:padding="4dp"
+                />
+
+        </LinearLayout>
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -58,7 +94,8 @@
         android:src="@android:drawable/ic_popup_sync"
         app:backgroundTint="#FF4081"
         app:tint="#FFFFFF"
-        android:contentDescription="@string/sync" />
+        android:contentDescription="@string/sync"
+        app:elevation="6dp"/>
 
     <TextView
         android:id="@+id/tvEmptyState"

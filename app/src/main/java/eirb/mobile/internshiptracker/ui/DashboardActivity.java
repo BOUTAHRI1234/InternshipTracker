@@ -4,10 +4,14 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.ImageView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SearchView;
 import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -32,6 +36,11 @@ public class DashboardActivity extends AppCompatActivity {
     private TimelineAdapter adapter;
     private DatabaseHelper dbHelper;
     private TextView tvEmptyState;
+    private SearchView searchView;
+    private Spinner spinnerStatus;
+
+    private String currentQuery = "";
+    private String currentStatus = "All";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,7 +56,6 @@ public class DashboardActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         ImageView btnLogout = findViewById(R.id.btnLogout);
-
         btnLogout.setOnClickListener(v -> {
             SessionManager.logout(DashboardActivity.this);
 
@@ -66,6 +74,41 @@ public class DashboardActivity extends AppCompatActivity {
         });
         recyclerView.setAdapter(adapter);
 
+        searchView = findViewById(R.id.searchView);
+        spinnerStatus = findViewById(R.id.spinnerStatus);
+
+        // Configuration du Spinner
+        String[] statuses = {"All", "Applied", "Awaiting Reply", "Rejected", "Accepted"};
+        ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, statuses);
+        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerStatus.setAdapter(spinnerAdapter);
+
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                currentQuery = query;
+                loadData();
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                currentQuery = newText;
+                loadData();
+                return true;
+            }
+        });
+
+        spinnerStatus.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                currentStatus = statuses[position];
+                loadData();
+            }
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
+
         findViewById(R.id.fabSync).setOnClickListener(v -> syncEmails());
 
         loadData();
@@ -74,7 +117,8 @@ public class DashboardActivity extends AppCompatActivity {
     private void loadData() {
         String userEmail = SessionManager.getEmail(this);
         new Thread(() -> {
-            List<Timeline> timelines = dbHelper.getTimelinesForUser(userEmail);
+            List<Timeline> timelines = dbHelper.searchTimelines(userEmail, currentQuery, currentStatus);
+
             runOnUiThread(() -> {
                 if (timelines.isEmpty()) {
                     tvEmptyState.setVisibility(View.VISIBLE);
@@ -93,9 +137,8 @@ public class DashboardActivity extends AppCompatActivity {
         String email = SessionManager.getEmail(this);
         String imapPass = SessionManager.getImapPassword(this);
         String groqKey = SessionManager.getGroqKey(this);
+
         Log.d("DEBUG", "Email: " + email);
-        // Ne logguez pas le mot de passe en entier pour la sécurité, mais vérifiez sa longueur
-        Log.d("DEBUG", "Pass Length: " + (imapPass != null ? imapPass.length() : "null"));
 
         new Thread(() -> {
             ImapService imapService = new ImapService();
@@ -119,6 +162,8 @@ public class DashboardActivity extends AppCompatActivity {
                         interaction.companyId = (int) companyId;
                         interaction.offerName = analysis.has("position") ? analysis.get("position").getAsString() : "Unknown";
                         interaction.description = analysis.has("summary") ? analysis.get("summary").getAsString() : "";
+                        interaction.status = analysis.has("status") ? analysis.get("status").getAsString() : "Applied";
+
                         interaction.interactionDate = msg.getSentDate().getTime();
                         interaction.userEmail = email;
 

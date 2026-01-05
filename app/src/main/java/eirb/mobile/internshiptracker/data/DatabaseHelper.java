@@ -17,7 +17,7 @@ import eirb.mobile.internshiptracker.model.User;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "internship_tracker.db";
-    private static final int DATABASE_VERSION = 2; // Incremented version
+    private static final int DATABASE_VERSION = 3;
 
     // Table Users
     private static final String TABLE_USERS = "users";
@@ -25,7 +25,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String COL_USER_EMAIL = "email";
     private static final String COL_USER_PASS_HASH = "passwordHash";
     private static final String COL_USER_IMAP_PASS = "imapPassword";
-    private static final String COL_USER_API_KEY = "mistralApiKey";
+    private static final String COL_USER_GROQ_KEY = "groqApiKey";
 
     // Table Company
     private static final String TABLE_COMPANY = "company";
@@ -38,6 +38,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String COL_INTERACTION_COMPANY_ID = "company_id";
     private static final String COL_INTERACTION_OFFER_NAME = "offer_name";
     private static final String COL_INTERACTION_DESCRIPTION = "description";
+    private static final String COL_INTERACTION_STATUS = "status";
     private static final String COL_INTERACTION_DATE = "interaction_date";
     private static final String COL_INTERACTION_USER_EMAIL = "user_email";
 
@@ -53,7 +54,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 COL_USER_EMAIL + " TEXT UNIQUE, " +
                 COL_USER_PASS_HASH + " TEXT, " +
                 COL_USER_IMAP_PASS + " TEXT, " +
-                COL_USER_API_KEY + " TEXT)";
+                COL_USER_GROQ_KEY + " TEXT)";
 
         String createCompany = "CREATE TABLE " + TABLE_COMPANY + " (" +
                 COL_COMPANY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
@@ -64,6 +65,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 COL_INTERACTION_COMPANY_ID + " INTEGER, " +
                 COL_INTERACTION_OFFER_NAME + " TEXT, " +
                 COL_INTERACTION_DESCRIPTION + " TEXT, " +
+                COL_INTERACTION_STATUS + " TEXT, " +
                 COL_INTERACTION_DATE + " INTEGER, " +
                 COL_INTERACTION_USER_EMAIL + " TEXT, " +
                 "FOREIGN KEY(" + COL_INTERACTION_COMPANY_ID + ") REFERENCES " + TABLE_COMPANY + "(" + COL_COMPANY_ID + ") ON DELETE CASCADE)";
@@ -89,7 +91,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_USER_EMAIL, user.email);
         values.put(COL_USER_PASS_HASH, user.passwordHash);
         values.put(COL_USER_IMAP_PASS, user.imapPassword);
-        values.put(COL_USER_API_KEY, user.mistralApiKey);
+        values.put(COL_USER_GROQ_KEY, user.groqApiKey);
         long id = db.insert(TABLE_USERS, null, values);
         db.close();
         return id;
@@ -105,14 +107,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             user.email = cursor.getString(cursor.getColumnIndexOrThrow(COL_USER_EMAIL));
             user.passwordHash = cursor.getString(cursor.getColumnIndexOrThrow(COL_USER_PASS_HASH));
             user.imapPassword = cursor.getString(cursor.getColumnIndexOrThrow(COL_USER_IMAP_PASS));
-            user.mistralApiKey = cursor.getString(cursor.getColumnIndexOrThrow(COL_USER_API_KEY));
+            user.groqApiKey = cursor.getString(cursor.getColumnIndexOrThrow(COL_USER_GROQ_KEY));
             cursor.close();
         }
         db.close();
         return user;
     }
 
-    // --- Company Operations ---
     public long insertCompany(Company company) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
@@ -146,32 +147,57 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_INTERACTION_COMPANY_ID, interaction.companyId);
         values.put(COL_INTERACTION_OFFER_NAME, interaction.offerName);
         values.put(COL_INTERACTION_DESCRIPTION, interaction.description);
+        values.put(COL_INTERACTION_STATUS, interaction.status);
         values.put(COL_INTERACTION_DATE, interaction.interactionDate);
         values.put(COL_INTERACTION_USER_EMAIL, interaction.userEmail);
         long id = db.insert(TABLE_INTERNSHIP_INTERACTION, null, values);
         db.close();
         return id;
     }
-    
+
     public List<Timeline> getTimelinesForUser(String userEmail) {
+        return searchTimelines(userEmail, "", "All");
+    }
+
+    public List<Timeline> searchTimelines(String userEmail, String queryName, String statusFilter) {
         List<Timeline> timelines = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
 
-        String query = "SELECT DISTINCT " + COL_INTERACTION_COMPANY_ID + " FROM " + TABLE_INTERNSHIP_INTERACTION + " WHERE " + COL_INTERACTION_USER_EMAIL + "=?";
-        Cursor companyCursor = db.rawQuery(query, new String[]{userEmail});
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT DISTINCT c.").append(COL_COMPANY_ID).append(", c.").append(COL_COMPANY_NAME);
+        sql.append(" FROM ").append(TABLE_INTERNSHIP_INTERACTION).append(" i ");
+        sql.append(" JOIN ").append(TABLE_COMPANY).append(" c ON i.").append(COL_INTERACTION_COMPANY_ID).append(" = c.").append(COL_COMPANY_ID);
+        sql.append(" WHERE i.").append(COL_INTERACTION_USER_EMAIL).append(" = ? ");
 
-        if (companyCursor.moveToFirst()) {
-            do {
-                int companyId = companyCursor.getInt(companyCursor.getColumnIndexOrThrow(COL_INTERACTION_COMPANY_ID));
-                timelines.add(getTimelineForCompany(userEmail, companyId));
-            } while (companyCursor.moveToNext());
+        List<String> args = new ArrayList<>();
+        args.add(userEmail);
+
+        if (queryName != null && !queryName.isEmpty()) {
+            sql.append(" AND c.").append(COL_COMPANY_NAME).append(" LIKE ? ");
+            args.add("%" + queryName + "%");
         }
-        companyCursor.close();
-        db.close();
 
+        if (statusFilter != null && !statusFilter.equals("All")) {
+            sql.append(" AND i.").append(COL_INTERACTION_STATUS).append(" = ? ");
+            args.add(statusFilter);
+        }
+
+        Cursor cursor = db.rawQuery(sql.toString(), args.toArray(new String[0]));
+
+        if (cursor.moveToFirst()) {
+            do {
+                int companyId = cursor.getInt(cursor.getColumnIndexOrThrow(COL_COMPANY_ID));
+                Timeline t = getTimelineForCompany(userEmail, companyId);
+                if (t != null) {
+                    timelines.add(t);
+                }
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+        db.close();
         return timelines;
     }
-    
+
     public Timeline getTimelineForCompany(String userEmail, int companyId) {
         SQLiteDatabase db = this.getReadableDatabase();
         Company company = null;
@@ -195,6 +221,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 interaction.companyId = interactionCursor.getInt(interactionCursor.getColumnIndexOrThrow(COL_INTERACTION_COMPANY_ID));
                 interaction.offerName = interactionCursor.getString(interactionCursor.getColumnIndexOrThrow(COL_INTERACTION_OFFER_NAME));
                 interaction.description = interactionCursor.getString(interactionCursor.getColumnIndexOrThrow(COL_INTERACTION_DESCRIPTION));
+
+                int statusIndex = interactionCursor.getColumnIndex(COL_INTERACTION_STATUS);
+                if (statusIndex != -1) {
+                    interaction.status = interactionCursor.getString(statusIndex);
+                }
+
                 interaction.interactionDate = interactionCursor.getLong(interactionCursor.getColumnIndexOrThrow(COL_INTERACTION_DATE));
                 interaction.userEmail = interactionCursor.getString(interactionCursor.getColumnIndexOrThrow(COL_INTERACTION_USER_EMAIL));
                 interactions.add(interaction);
