@@ -16,6 +16,10 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class AiAnalyzer {
     private GroqService groqService;
 
+
+    public static class AiQuotaException extends Exception {
+        public AiQuotaException(String message) { super(message); }
+    }
     public AiAnalyzer(String apiKey) {
 
         // Log.d("MistralDebug", "Clé reçue : '" + apiKey + "'");
@@ -41,7 +45,7 @@ public class AiAnalyzer {
         groqService = retrofit.create(GroqService.class);
     }
 
-    public JsonObject analyzeEmail(String subject, String body, String sender, String date) {
+    public JsonObject analyzeEmail(String subject, String body, String sender, String date) throws AiQuotaException{
         String prompt = "You are a backend JSON parser. Analyze this email:\n" +
                 "Subject: " + subject + "\n" +
                 "From: " + sender + "\n" +
@@ -68,6 +72,12 @@ public class AiAnalyzer {
 
         try {
             Response<JsonObject> response = groqService.getChatCompletion(requestBody).execute();
+            if (response.code() == 429) {
+                throw new AiQuotaException("Quota API dépassé. Analyse arrêtée.");
+            }
+            if (response.code() == 401) {
+                throw new AiQuotaException("Clé API invalide.");
+            }
             if (response.isSuccessful() && response.body() != null) {
                 String content = response.body()
                         .getAsJsonArray("choices").get(0).getAsJsonObject()

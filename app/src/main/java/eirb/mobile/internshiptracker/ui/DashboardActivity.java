@@ -42,10 +42,15 @@ public class DashboardActivity extends AppCompatActivity {
     private String currentQuery = "";
     private String currentStatus = "All";
 
+    private TextView tvQuotaError;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dashboard);
+
+        tvQuotaError = findViewById(R.id.tvQuotaError);
+        tvQuotaError.setOnClickListener(v -> tvQuotaError.setVisibility(View.GONE));
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -133,51 +138,69 @@ public class DashboardActivity extends AppCompatActivity {
     }
 
     private void syncEmails() {
+        tvQuotaError.setVisibility(View.GONE);
         Toast.makeText(this, "Sync starting...", Toast.LENGTH_SHORT).show();
+
         String email = SessionManager.getEmail(this);
         String imapPass = SessionManager.getImapPassword(this);
         String groqKey = SessionManager.getGroqKey(this);
 
-        Log.d("DEBUG", "Email: " + email);
-
         new Thread(() -> {
-            ImapService imapService = new ImapService();
-            AiAnalyzer aiAnalyzer = new AiAnalyzer(groqKey);
+            try {
+                ImapService imapService = new ImapService();
+                AiAnalyzer aiAnalyzer = new AiAnalyzer(groqKey);
 
-            imapService.fetchEmails(email, imapPass, (msg, folder) -> {
-                try {
+                imapService.fetchEmails(email, imapPass, (msg, folder) -> {
                     String subject = msg.getSubject();
+                    if (msg.getFrom() == null || msg.getFrom().length == 0) return;
                     String sender = msg.getFrom()[0].toString();
                     String body = imapService.getTextFromMessage(msg);
                     String date = msg.getSentDate().toString();
 
                     JsonObject analysis = aiAnalyzer.analyzeEmail(subject, body, sender, date);
+                    if (analysis != null && analysis.has("company") && !analysis.get("company").isJsonNull()) {
 
-                    if (analysis != null && analysis.has("company")) {
                         String companyName = analysis.get("company").getAsString();
                         Company company = new Company(0, companyName);
                         long companyId = dbHelper.insertCompany(company);
 
                         InternshipInteraction interaction = new InternshipInteraction();
                         interaction.companyId = (int) companyId;
-                        interaction.offerName = analysis.has("position") ? analysis.get("position").getAsString() : "Unknown";
-                        interaction.description = analysis.has("summary") ? analysis.get("summary").getAsString() : "";
-                        interaction.status = analysis.has("status") ? analysis.get("status").getAsString() : "Applied";
+                        interaction.offerName = getSafeString(analysis, "position", "Unknown");
+                        interaction.description = getSafeString(analysis, "summary", "");
+                        interaction.status = getSafeString(analysis, "status", "Applied");
 
                         interaction.interactionDate = msg.getSentDate().getTime();
                         interaction.userEmail = email;
 
                         dbHelper.insertInternshipInteraction(interaction);
                     }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            });
+                });
 
-            runOnUiThread(() -> {
-                Toast.makeText(this, "Sync Complete", Toast.LENGTH_SHORT).show();
-                loadData();
-            });
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "Sync Complete", Toast.LENGTH_SHORT).show();
+                    loadData();
+                });
+
+            } catch (AiAnalyzer.AiQuotaException e) {
+                Log.e("Dashboard", "Quota exceeded: " + e.getMessage());
+                runOnUiThread(() -> {
+                    tvQuotaError.setVisibility(View.VISIBLE);
+                    tvQuotaError.setText("Quota IA dépassé. La synchronisation a été arrêtée.");
+                    Toast.makeText(this, "Erreur : Quota IA atteint", Toast.LENGTH_LONG).show();
+                    loadData();
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+                runOnUiThread(() -> Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+            }
         }).start();
+    }
+
+    private String getSafeString(JsonObject json, String key, String defaultValue) {
+        if (json.has(key) && !json.get(key).isJsonNull()) {
+            return json.get(key).getAsString();
+        }
+        return defaultValue;
     }
 }

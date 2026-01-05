@@ -37,6 +37,7 @@
             app:layout_constraintTop_toBottomOf="@id/tvHeader" />
 
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardRegister"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="32dp"
@@ -45,7 +46,6 @@
             app:cardElevation="12dp"
             app:cardBackgroundColor="#FFFFFF"
             app:layout_constraintTop_toBottomOf="@id/tvSubHeader"
-            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
 
@@ -193,5 +193,18 @@
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
+        <ImageView
+            android:id="@+id/ivLogoBottomReg"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:src="@drawable/app_logo"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="24dp"
+            app:layout_constraintTop_toBottomOf="@id/cardRegister"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.core.widget.NestedScrollView>

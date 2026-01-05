@@ -13,10 +13,10 @@ import javax.mail.search.SubjectTerm;
 public class ImapService {
 
     public interface EmailCallback {
-        void onEmailFound(Message message, String folderName);
+        void onEmailFound(Message message, String folderName) throws Exception;
     }
 
-    public void fetchEmails(String email, String password, EmailCallback callback) {
+    public void fetchEmails(String email, String password, EmailCallback callback) throws Exception {
         Properties props = new Properties();
         props.setProperty("mail.store.protocol", "imaps");
         props.setProperty("mail.imaps.host", "imap.gmail.com");
@@ -30,7 +30,11 @@ public class ImapService {
             store.connect("imap.gmail.com", email, password);
 
             String[] folders = {"Inbox", "[Gmail]/Sent Mail"};
-            String[] keywords = {"internship", "stage", "PFE", "application"};
+            String[] keywords = {
+                    "internship", "stage", "PFE", "application", "candidature",
+                    "recruitment", "recrutement", "offer", "interview", "entretien",
+                    "job", "embauche", "career", "rh", "talent"
+            };
 
             for (String folderName : folders) {
                 try {
